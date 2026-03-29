@@ -112,7 +112,22 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-# ─── Callback para escenarios predefinidos ───
+# ─── Defaults y session_state (única fuente de verdad) ───
+_DEFAULTS = {
+    "input_T0": 92.0,
+    "input_Ta": 24.0,
+    "input_t1": 5.0,
+    "input_Tm": 68.0,
+    "input_t2": 15.0,
+    "input_Tgoal": 30.0,
+}
+
+for _key, _val in _DEFAULTS.items():
+    if _key not in st.session_state:
+        st.session_state[_key] = _val
+
+
+# ─── Callbacks ───
 def _cargar_escenario():
     """Actualiza los number_input vía session_state cuando se elige un escenario."""
     nombre = st.session_state.preset_select
@@ -128,12 +143,8 @@ def _cargar_escenario():
 
 def _restablecer():
     """Restaura los valores por defecto del problema original."""
-    st.session_state.input_T0 = 92.0
-    st.session_state.input_Ta = 24.0
-    st.session_state.input_t1 = 5.0
-    st.session_state.input_Tm = 68.0
-    st.session_state.input_t2 = 15.0
-    st.session_state.input_Tgoal = 30.0
+    for key, val in _DEFAULTS.items():
+        st.session_state[key] = val
     st.session_state.preset_select = "— Personalizado —"
 
 
@@ -158,14 +169,14 @@ with st.sidebar:
 
     T0 = st.number_input(
         "Temperatura inicial T₀ (°C)",
-        min_value=30.0, max_value=200.0, value=92.0, step=1.0,
+        min_value=30.0, max_value=200.0, step=1.0,
         help="Temperatura de la GPU al momento de apagarse",
         key="input_T0",
     )
 
     Ta = st.number_input(
         "Temperatura ambiente Tₐ (°C)",
-        min_value=0.0, max_value=50.0, value=24.0, step=1.0,
+        min_value=0.0, max_value=50.0, step=1.0,
         help="Temperatura del entorno donde se enfría",
         key="input_Ta",
     )
@@ -174,14 +185,14 @@ with st.sidebar:
 
     t1 = st.number_input(
         "Tiempo de medición t₁ (min)",
-        min_value=0.5, max_value=60.0, value=5.0, step=0.5,
+        min_value=0.5, max_value=60.0, step=0.5,
         help="Momento en el que se mide la segunda temperatura",
         key="input_t1",
     )
 
     Tm = st.number_input(
         "Temperatura en t₁ (°C)",
-        min_value=0.0, max_value=200.0, value=68.0, step=1.0,
+        min_value=0.0, max_value=200.0, step=1.0,
         help="Temperatura medida en el tiempo t₁",
         key="input_Tm",
     )
@@ -190,14 +201,14 @@ with st.sidebar:
 
     t2 = st.number_input(
         "Tiempo a evaluar t₂ (min)",
-        min_value=1.0, max_value=120.0, value=15.0, step=1.0,
+        min_value=1.0, max_value=120.0, step=1.0,
         help="¿Cuál será la temperatura en este momento?",
         key="input_t2",
     )
 
     Tgoal = st.number_input(
         "Temperatura objetivo T* (°C)",
-        min_value=0.0, max_value=200.0, value=30.0, step=1.0,
+        min_value=0.0, max_value=200.0, step=1.0,
         help="¿Cuánto tiempo tarda en llegar a esta temperatura?",
         key="input_Tgoal",
     )
@@ -452,7 +463,7 @@ st.markdown("## 📋 Tabla de valores")
 
 tabla_datos = solver.generate_table(t_max)
 df = pd.DataFrame(tabla_datos)
-st.dataframe(df, width="stretch", hide_index=True)
+st.dataframe(df, use_container_width=True, hide_index=True)
 
 st.download_button(
     label="Descargar tabla como CSV",
