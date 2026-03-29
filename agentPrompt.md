@@ -1,118 +1,171 @@
-# PROMPT PARA CLAUDE CODE — Simulador de Ley de Enfriamiento de Newton
-# Copiar y pegar este prompt completo en Claude Code para generar la app
+# Agent Prompt — Newton's Law of Cooling Simulator
 
-"""
-Necesito que construyas una aplicación completa en Streamlit para simular y explicar
-paso a paso la Ley de Enfriamiento de Newton aplicada a disipación térmica en GPUs.
+> Universal prompt for any AI coding agent (Claude Code, Cursor, Copilot, Windsurf, Aider, etc.)
+> Copy-paste this entire file as context when working on this project.
 
-## CONTEXTO
-Es un proyecto universitario de Ecuaciones Diferenciales (MA-106, Universidad Fidélitas).
-La profesora exige:
-- Desarrollo matemático con separación de variables (NO métodos numéricos como Euler/RK4)
-- Problemas de aplicación propios con datos hipotéticos realistas
-- Gráficos y diagramas
-- Formato académico
+---
 
-## ESTRUCTURA DE LA APP
+## 1. PROJECT IDENTITY
 
-### Sidebar (parámetros editables)
-- T₀: Temperatura inicial de la GPU (default: 92°C, rango 30-200)
-- Tₐ: Temperatura ambiente (default: 24°C, rango 0-50)
-- t₁: Tiempo de medición conocido (default: 5 min)
-- T(t₁): Temperatura medida en t₁ (default: 68°C)
-- t₂: Tiempo a evaluar (default: 15 min)
-- T*: Temperatura objetivo (default: 30°C)
-- Escenarios predefinidos con selectbox:
-  - GPU gaming (T₀=95, Tₐ=28, Tm=72, t₁=4, t₂=12, T*=35)
-  - GPU servidor data center (T₀=85, Tₐ=20, Tm=55, t₁=6, t₂=20, T*=25)
-  - Batería EV post carga rápida (T₀=52, Tₐ=25, Tm=42, t₁=10, t₂=30, T*=28)
-  - CPU laptop uso normal (T₀=78, Tₐ=22, Tm=58, t₁=3, t₂=10, T*=28)
+| Field | Value |
+|-------|-------|
+| Name | Ley de Enfriamiento de Newton — Simulador Interactivo |
+| Purpose | Interactive Streamlit app that solves and visualizes Newton's Law of Cooling as an ODE problem |
+| Domain | University differential equations course (MA-106, Universidad Fidelitas) |
+| Language | Python 3.12+ |
+| UI Framework | Streamlit |
+| Deployment | GitHub Pages via stlite (WebAssembly) + local `streamlit run app.py` |
+| Live URL | https://handelenriquezacuna.github.io/LeyDeEnfriamientoNewton/ |
+| Repo | https://github.com/handelenriquezacuna/LeyDeEnfriamientoNewton |
 
-### Contenido principal (en este orden exacto)
+---
 
-1. **Planteamiento del problema**
-   - Box estilizado que muestra el problema con los valores actuales
-   - Se actualiza dinámicamente al cambiar parámetros
+## 2. ARCHITECTURE
 
-2. **Resultados rápidos**
-   - 3 metric cards: (a) k en min⁻¹, (b) T(t₂) en °C, (c) tiempo para T*
-   - 2 métricas extra: vida media térmica y constante de tiempo τ
+```
+models.py        → CoolingParameters (dataclass + validate())
+                   CoolingResults (dataclass)
 
-3. **Desarrollo matemático paso a paso** (8 pasos con st.latex)
-   - Paso 1: Escribir la EDO → dT/dt = -k(T - Tₐ)
-   - Paso 2: Separar variables → dT/(T-Tₐ) = -k dt
-   - Paso 3: Integrar ambos miembros → ln|T-Tₐ| = -kt + C
-   - Paso 4: Solución general → T(t) = Tₐ + (T₀-Tₐ)·e^(-kt)
-   - Paso 5: Verificar condición inicial T(0) = T₀
-   - Paso 6(a): Encontrar k usando T(t₁) = Tm (mostrar TODOS los pasos algebraicos)
-   - Paso 7(b): Evaluar T(t₂) (mostrar sustitución completa)
-   - Paso 8(c): Despejar t cuando T = T* (mostrar todos los pasos con ln)
-   
-   CADA PASO debe tener:
-   - Label coloreado (ej: "PASO 1 — ECUACIÓN DIFERENCIAL")
-   - Descripción breve en texto
-   - Ecuación en st.latex() con los valores numéricos sustituidos
-   - Los resultados finales de (a), (b), (c) resaltados en un box verde
+solver.py        → NewtonCoolingSolver
+                     .k (cached property)
+                     .temperature_at(t) → float
+                     .time_for_temperature(T) → float
+                     .half_life, .time_constant (properties)
+                     .solve() → CoolingResults
+                     .generate_curve(t_max) → (t_arr, T_arr)
+                     .generate_table(t_max) → list[dict]
+                     .classify_k(k) → (str, str)  [static]
 
-4. **Gráfico 1: Curva de enfriamiento** (matplotlib, figsize 12x6)
-   - Curva T(t) en azul con fill_between suave
-   - Línea horizontal punteada para Tₐ
-   - 4 puntos anotados: T₀, T(t₁), T(t₂), T* con colores distintos
-   - Líneas punteadas desde los puntos a los ejes
-   - Leyenda, grid suave, spines top/right ocultos
+scenarios.py     → ESCENARIOS: dict[str, CoolingParameters]
+                     "GPU gaming (alta carga)"
+                     "GPU servidor (data center)"
+                     "Batería EV (post carga rápida)"
+                     "CPU laptop (uso normal)"
 
-5. **Gráfico 2: Comparación de k** (matplotlib, figsize 12x5)
-   - 3 curvas superpuestas: k/2 (ventilación pobre), k actual, 2k (refrigeración líquida)
-   - Estilos de línea distintos (dashed, solid, dash-dot)
-   - Demuestra visualmente el impacto del tipo de refrigeración
+charts.py        → CoolingVisualizer(solver)
+                     .plot_cooling_curve(t_max) → Figure
+                     .plot_k_comparison(t_max) → Figure
+                     .plot_semilog(t_max) → Figure
 
-6. **Gráfico 3: Representación semilogarítmica** (matplotlib, figsize 12x4.5)
-   - Graficar ln(T - Tₐ) vs t
-   - Debe verse como una línea recta (prueba de que el modelo es correcto)
-   - Anotar la pendiente = -k
+app.py           → Streamlit UI (thin layer)
+                     Sidebar: inputs, presets, reset button
+                     Main: problem statement, metrics, 8 LaTeX steps,
+                           3 charts, data table, analysis, final equation
 
-7. **Tabla de valores** con st.dataframe
-   - Columnas: t (min), T(t) °C, T-Tₐ °C, % enfriado
-
-8. **Análisis de resultados**
-   - Box con fondo amarillo suave
-   - Interpreta k (alta/moderada/baja según valor)
-   - Vida media y constante de tiempo
-   - Implicación para diseño de disipadores
-   - Referencia a Singh et al. (2024)
-
-9. **Ecuación resumen final** en st.latex
-
-10. **Footer** con créditos del grupo
-
-## MATEMÁTICAS CORE
-```python
-k = -np.log((Tm - Ta) / (T0 - Ta)) / t1
-T2 = Ta + (T0 - Ta) * np.exp(-k * t2)
-t_goal = -np.log((Tgoal - Ta) / (T0 - Ta)) / k
-half_life = np.log(2) / k
-tau = 1 / k
+index.html       → stlite mountable loader (GitHub Pages entry point)
 ```
 
-## VALIDACIÓN
-- Verificar que T₀ > Tm > Tₐ antes de calcular
-- Mostrar st.error si los parámetros son inválidos
-- Todos los números mostrados deben estar redondeados (no mostrar floats largos)
+### Data flow
 
-## ESTILO
-- CSS personalizado con st.markdown(unsafe_allow_html=True)
-- Pasos matemáticos con border-left coloreado y fondo suave
-- Resultados en boxes verdes resaltados
-- Gráficos con fondo #fafafa, sin spines superiores/derecho
-- Font profesional, colores: azul #4361ee, rojo #e63946, verde #2a9d8f, morado #7209b7
+```
+User inputs (sidebar)
+    → CoolingParameters
+    → params.validate()
+    → NewtonCoolingSolver(params)
+    → solver.solve() → CoolingResults
+    → CoolingVisualizer(solver) → 3 Figures
+    → Streamlit renders everything
+```
 
-## DEPENDENCIAS
-streamlit, numpy, matplotlib, pandas
+---
 
-## ARCHIVOS A GENERAR
-1. app.py (la aplicación completa)
-2. requirements.txt
-3. README.md con instrucciones de ejecución
+## 3. MATH CORE
 
-Genera todo el código completo, funcional, y listo para ejecutar con `streamlit run app.py`.
-"""
+The app solves the ODE `dT/dt = -k(T - Ta)` via separation of variables.
+
+**Analytical solution:** `T(t) = Ta + (T0 - Ta) * e^(-kt)`
+
+```python
+k = -ln((Tm - Ta) / (T0 - Ta)) / t1      # from known measurement
+T2 = Ta + (T0 - Ta) * exp(-k * t2)         # temperature at time t2
+t_goal = -ln((Tgoal - Ta) / (T0 - Ta)) / k # time to reach target
+half_life = ln(2) / k                       # thermal half-life
+tau = 1 / k                                 # time constant
+```
+
+**Constraint:** The professor requires separation of variables (NOT numerical methods like Euler/RK4).
+
+---
+
+## 4. HARD CONSTRAINTS
+
+These rules must never be violated:
+
+| # | Constraint |
+|---|-----------|
+| 1 | **Dual deployment**: Code must work in BOTH local Streamlit AND stlite/Pyodide (WebAssembly). Test API compatibility before shipping. |
+| 2 | **session_state is single source of truth** for all widget values. Never pass `value=` to a `number_input` that also has a `key=` in session_state. Initialize defaults via `if key not in st.session_state: st.session_state[key] = default`. |
+| 3 | **Use `use_container_width=True`** instead of `width="stretch"` for `st.dataframe` (stlite compatibility). |
+| 4 | **All user-facing text in Spanish.** Code identifiers in English. |
+| 5 | **156 tests must pass** before any push. Run `python -m pytest tests/ -v`. |
+| 6 | **Separation of variables only** — no numerical ODE solvers. |
+| 7 | **OOP architecture** — logic in solver.py, visualization in charts.py, data in models.py. app.py is a thin UI layer. |
+| 8 | **CSS contrast** — all custom-styled elements must have explicit `color` properties with `!important` for dark mode safety. |
+
+---
+
+## 5. TEST SUITE
+
+```bash
+python -m pytest tests/ -v    # 156 tests, ~6 seconds
+```
+
+| File | Count | What it tests |
+|------|-------|---------------|
+| tests/test_models.py | 18 | CoolingParameters validation (13 cases), properties (4), CoolingResults construction (1) |
+| tests/test_solver.py | 117 | k calculation, T(t), t(T), half-life, tau, solve() across 4 scenarios, table/curve generation, classify_k, edge cases |
+| tests/test_charts.py | 8 | CoolingVisualizer returns valid matplotlib Figures with correct axes/labels |
+| tests/test_app_visual.py | 13 | Streamlit integration: loads without error, renders 5 metrics, 10+ LaTeX blocks, dataframe, presets work |
+
+---
+
+## 6. CI/CD
+
+GitHub Actions workflow (`.github/workflows/deploy.yml`):
+1. On push to `main`: run tests on ubuntu with Python 3.12
+2. If tests pass: deploy to GitHub Pages via `actions/deploy-pages@v4`
+3. `enablement: true` on `configure-pages` to auto-create the Pages site
+
+---
+
+## 7. DEPENDENCIES
+
+```
+streamlit>=1.30.0
+numpy>=1.24.0
+matplotlib>=3.7.0
+pandas>=2.0.0
+pytest>=8.0.0
+```
+
+---
+
+## 8. COMMON TASKS
+
+### Add a new scenario
+1. Add entry to `ESCENARIOS` dict in `scenarios.py`
+2. Tests auto-parametrize over `ESCENARIOS` — new scenario gets tested automatically
+
+### Add a new chart
+1. Add method to `CoolingVisualizer` in `charts.py` returning a `Figure`
+2. Call it in `app.py` with `st.pyplot(viz.new_method(t_max))` + `plt.close()`
+3. Add test in `tests/test_charts.py`
+
+### Modify solver logic
+1. Edit `NewtonCoolingSolver` in `solver.py`
+2. Update/add tests in `tests/test_solver.py`
+3. Run `python -m pytest tests/ -v` before committing
+
+### Deploy
+```bash
+git push origin main   # triggers CI: test → deploy to Pages automatically
+```
+
+---
+
+## 9. KNOWN LIMITATIONS
+
+- stlite initial load takes 10-15 seconds (downloads Pyodide/WebAssembly)
+- Streamlit's built-in `min_value`/`max_value` error messages are in English (cannot be overridden)
+- `st.download_button` works locally but may have browser-specific behavior in stlite
+- Matplotlib renders as static images (no hover/zoom — would need Plotly for interactivity)
