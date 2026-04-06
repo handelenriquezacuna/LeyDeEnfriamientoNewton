@@ -108,6 +108,88 @@ st.markdown("""
         margin-left: 8px;
         vertical-align: middle;
     }
+
+    .glosario-box {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border: 1px solid #7dd3fc;
+        border-radius: 10px;
+        padding: 14px 16px;
+        font-size: 13px;
+        line-height: 1.9;
+        color: #0c4a6e !important;
+    }
+    .glosario-box code {
+        background: #bae6fd;
+        color: #0c4a6e;
+        padding: 1px 5px;
+        border-radius: 4px;
+        font-weight: 600;
+    }
+
+    .intuition-box {
+        background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+        border: 1px solid #d8b4fe;
+        border-radius: 10px;
+        padding: 14px 18px;
+        margin: 8px 0 16px 0;
+        font-size: 14px;
+        line-height: 1.7;
+        color: #3b0764 !important;
+    }
+    .intuition-box strong { color: #7c3aed; }
+
+    .quiz-box {
+        background: linear-gradient(135deg, #fff7ed 0%, #ffedd5 100%);
+        border: 1px solid #fdba74;
+        border-radius: 12px;
+        padding: 20px 24px;
+        line-height: 1.7;
+        color: #7c2d12 !important;
+    }
+
+    .quiz-success {
+        background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        border: 1px solid #86efac;
+        border-radius: 10px;
+        padding: 12px 16px;
+        color: #14532d !important;
+        font-size: 14px;
+    }
+
+    .quiz-fail {
+        background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+        border: 1px solid #fca5a5;
+        border-radius: 10px;
+        padding: 12px 16px;
+        color: #7f1d1d !important;
+        font-size: 14px;
+    }
+
+    .progress-thermal {
+        background: #f1f5f9;
+        border-radius: 10px;
+        padding: 16px 20px;
+        border: 1px solid #e2e8f0;
+        color: #1e293b !important;
+    }
+    .progress-thermal .bar-bg {
+        background: #e2e8f0;
+        border-radius: 6px;
+        height: 24px;
+        overflow: hidden;
+        margin: 8px 0;
+    }
+    .progress-thermal .bar-fill {
+        height: 100%;
+        border-radius: 6px;
+        transition: width 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: 700;
+        color: white;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -152,6 +234,29 @@ def _restablecer():
 with st.sidebar:
     st.markdown("## ⚙️ Parámetros del problema")
     st.markdown("Ajustá los valores para ver cómo cambia la solución completa.")
+
+    st.markdown("---")
+
+    modo_aprendizaje = st.toggle(
+        "Modo aprendizaje",
+        value=True,
+        help="Activa explicaciones intuitivas, analogías y un quiz interactivo",
+    )
+
+    if modo_aprendizaje:
+        with st.expander("📖 Glosario de variables", expanded=False):
+            st.markdown("""
+<div class="glosario-box">
+<code>T₀</code> — Temperatura inicial del objeto (al apagarse)<br>
+<code>Tₐ</code> — Temperatura del ambiente (hacia donde converge)<br>
+<code>t₁</code> — Momento en que se toma una segunda medición<br>
+<code>T(t₁)</code> — Temperatura medida en el instante t₁<br>
+<code>k</code> — Constante de enfriamiento (qué tan rápido se enfría)<br>
+<code>τ</code> — Constante de tiempo: tras 1τ se pierde el 63% de la diferencia<br>
+<code>t½</code> — Vida media: tiempo para que la diferencia se reduzca a la mitad<br>
+<code>T*</code> — Temperatura objetivo que queremos alcanzar
+</div>
+""", unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("### 📋 Escenarios predefinidos")
@@ -311,6 +416,15 @@ math_step(
     r"\frac{dT}{dt} = -k(T - T_a)"
 )
 
+if modo_aprendizaje:
+    st.markdown("""<div class="intuition-box">
+    <strong>Intuición:</strong> Imagina que sostenés una taza de café caliente.
+    Al principio se enfría rápido porque la diferencia con el ambiente es grande.
+    Conforme se acerca a la temperatura del cuarto, se enfría cada vez más lento.
+    Eso es exactamente lo que dice esta ecuación: <em>la velocidad de cambio depende
+    de qué tan lejos estés del equilibrio</em>.
+    </div>""", unsafe_allow_html=True)
+
 # Paso 2
 math_step(
     "Paso 2 — Separación de variables",
@@ -318,6 +432,13 @@ math_step(
     "Se reorganiza la ecuación separando las variables T y t:",
     r"\frac{dT}{T - T_a} = -k \, dt"
 )
+
+if modo_aprendizaje:
+    st.markdown("""<div class="intuition-box">
+    <strong>¿Por qué separar variables?</strong> Es como organizar una ecuación
+    para que cada lado hable de una sola cosa: el lado izquierdo solo tiene temperatura,
+    el derecho solo tiene tiempo. Así podemos integrar cada lado por separado.
+    </div>""", unsafe_allow_html=True)
 
 # Paso 3
 math_step(
@@ -334,6 +455,14 @@ math_step(
     "Se aplica e^(·) a ambos lados y se renombra la constante:",
     r"T(t) = T_a + (T_0 - T_a) \cdot e^{-kt}"
 )
+
+if modo_aprendizaje:
+    st.markdown("""<div class="intuition-box">
+    <strong>Esta es la ecuación clave.</strong> Dice que la temperatura
+    arranca en T₀ y <em>decae exponencialmente</em> hacia Tₐ. El término
+    e<sup>-kt</sup> es el que controla la velocidad: cuanto mayor sea k,
+    más rápido cae el exponencial y más rápido se enfría el objeto.
+    </div>""", unsafe_allow_html=True)
 
 # Paso 5
 math_step(
@@ -372,6 +501,15 @@ st.markdown(f"""
     k = {k:.4f} min⁻¹
 </div>
 """, unsafe_allow_html=True)
+
+if modo_aprendizaje:
+    clasif_tmp, desc_tmp = NewtonCoolingSolver.classify_k(k)
+    st.markdown(f"""<div class="intuition-box">
+    <strong>¿Qué significa k = {k:.4f}?</strong> Es la "velocidad de enfriamiento".
+    Un k de {k:.4f} se clasifica como <strong>{clasif_tmp}</strong>, típico de {desc_tmp}.
+    Si k fuera el doble ({k*2:.4f}), el objeto se enfriaría al doble de velocidad.
+    Probá cambiando los valores en el sidebar para ver cómo cambia k.
+    </div>""", unsafe_allow_html=True)
 
 st.markdown("")
 
@@ -457,7 +595,182 @@ st.pyplot(fig3)
 plt.close(fig3)
 
 
-# ─── 5. TABLA DE VALORES ───
+# ─── 5. PROGRESO TÉRMICO VISUAL ───
+if modo_aprendizaje:
+    st.markdown("---")
+    st.markdown("## 🌡️ Progreso térmico hacia el equilibrio")
+
+    pct_t2 = min(((T0 - T2) / (T0 - Ta)) * 100, 100)
+    pct_goal = min(((T0 - Tgoal) / (T0 - Ta)) * 100, 100)
+
+    # Color gradient based on percentage
+    def _bar_color(pct: float) -> str:
+        if pct < 40:
+            return "#e63946"
+        elif pct < 70:
+            return "#f77f00"
+        else:
+            return "#2a9d8f"
+
+    st.markdown(f"""
+<div class="progress-thermal">
+<strong>En t = {t2:.0f} min</strong> — el objeto ha recorrido el <strong>{pct_t2:.1f}%</strong>
+del camino de T₀ ({T0:.0f}°C) hacia Tₐ ({Ta:.0f}°C)
+<div class="bar-bg">
+    <div class="bar-fill" style="width: {pct_t2:.1f}%; background: {_bar_color(pct_t2)};">
+        {pct_t2:.0f}%
+    </div>
+</div>
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown("")
+
+    st.markdown(f"""
+<div class="progress-thermal">
+<strong>Para llegar a T* = {Tgoal:.0f}°C</strong> — se necesita recorrer el
+<strong>{pct_goal:.1f}%</strong> del camino, lo que toma <strong>{t_goal:.2f} min</strong>
+<div class="bar-bg">
+    <div class="bar-fill" style="width: {pct_goal:.1f}%; background: {_bar_color(pct_goal)};">
+        {pct_goal:.0f}%
+    </div>
+</div>
+</div>
+""", unsafe_allow_html=True)
+
+    five_tau_pct = min((1 - np.exp(-5)) * 100, 100)
+    st.markdown("")
+    st.markdown(f"""
+<div class="progress-thermal">
+<strong>Tras 5τ = {5 * tau:.1f} min</strong> — el sistema alcanza el
+<strong>{five_tau_pct:.1f}%</strong> del equilibrio (regla práctica de ingeniería)
+<div class="bar-bg">
+    <div class="bar-fill" style="width: {five_tau_pct:.1f}%; background: #4361ee;">
+        {five_tau_pct:.1f}%
+    </div>
+</div>
+</div>
+""", unsafe_allow_html=True)
+
+
+# ─── 6. QUIZ INTERACTIVO ───
+if modo_aprendizaje:
+    st.markdown("---")
+    st.markdown("## 🧠 Ponete a prueba")
+
+    st.markdown("""<div class="quiz-box">
+    <strong>Desafío:</strong> Sin cambiar nada, intentá predecir qué pasará
+    antes de revelar la respuesta.
+    </div>""", unsafe_allow_html=True)
+
+    st.markdown("")
+
+    # Quiz 1
+    with st.expander("Pregunta 1: Si duplicamos k, ¿qué pasa con el tiempo para llegar a T*?"):
+        opciones_q1 = [
+            "Se duplica (tarda el doble)",
+            "Se reduce a la mitad (tarda la mitad)",
+            "No cambia",
+            "Se reduce, pero no exactamente a la mitad",
+        ]
+        resp_q1 = st.radio("Tu respuesta:", opciones_q1, key="quiz_q1", index=None)
+        if resp_q1 is not None:
+            t_goal_2k = solver.time_for_temperature(Tgoal)
+            t_goal_2k_real = -np.log((Tgoal - Ta) / (T0 - Ta)) / (k * 2)
+            if resp_q1 == opciones_q1[1]:
+                st.markdown(f"""<div class="quiz-success">
+                <strong>Correcto.</strong> Como t = ln(...)/<strong>k</strong>, al duplicar k
+                el tiempo se divide exactamente por 2.
+                Con k actual: {t_goal:.2f} min → con 2k: {t_goal_2k_real:.2f} min.
+                </div>""", unsafe_allow_html=True)
+            else:
+                st.markdown(f"""<div class="quiz-fail">
+                <strong>No exactamente.</strong> La respuesta correcta es "se reduce a la mitad".
+                Como t = ln(...)/<strong>k</strong>, duplicar k divide el tiempo por 2.
+                Con k actual: {t_goal:.2f} min → con 2k: {t_goal_2k_real:.2f} min.
+                </div>""", unsafe_allow_html=True)
+
+    # Quiz 2
+    with st.expander("Pregunta 2: ¿La temperatura del objeto puede bajar por debajo de Tₐ?"):
+        opciones_q2 = [
+            "Sí, si esperamos suficiente tiempo",
+            "No, Tₐ es el límite inferior (asíntota)",
+            "Sí, pero solo con refrigeración activa",
+        ]
+        resp_q2 = st.radio("Tu respuesta:", opciones_q2, key="quiz_q2", index=None)
+        if resp_q2 is not None:
+            if resp_q2 == opciones_q2[1]:
+                st.markdown(f"""<div class="quiz-success">
+                <strong>Correcto.</strong> La función e<sup>-kt</sup> nunca llega a cero,
+                solo se acerca infinitamente. Por eso T(t) = Tₐ + (algo positivo) siempre
+                será mayor que Tₐ = {Ta:.0f}°C. Es una <strong>asíntota horizontal</strong>.
+                </div>""", unsafe_allow_html=True)
+            else:
+                st.markdown(f"""<div class="quiz-fail">
+                <strong>No.</strong> Según el modelo, T(t) = Tₐ + (T₀−Tₐ)·e<sup>-kt</sup>.
+                Como e<sup>-kt</sup> &gt; 0 siempre, la temperatura nunca baja de Tₐ = {Ta:.0f}°C.
+                Es una <strong>asíntota horizontal</strong>.
+                </div>""", unsafe_allow_html=True)
+
+    # Quiz 3
+    with st.expander(f"Pregunta 3: ¿Cuánto tarda en enfriarse el 50% de la diferencia inicial?"):
+        opciones_q3 = [
+            f"Exactamente {half_life:.2f} min (la vida media)",
+            f"Exactamente {tau:.2f} min (la constante de tiempo τ)",
+            f"Exactamente {t_goal:.2f} min",
+        ]
+        resp_q3 = st.radio("Tu respuesta:", opciones_q3, key="quiz_q3", index=None)
+        if resp_q3 is not None:
+            if resp_q3 == opciones_q3[0]:
+                st.markdown(f"""<div class="quiz-success">
+                <strong>Correcto.</strong> La vida media t½ = ln(2)/k = {half_life:.2f} min
+                es por definición el tiempo para que (T−Tₐ) se reduzca a la mitad.
+                Dato: τ = {tau:.2f} min es cuando se pierde el 63.2% (1 − 1/e).
+                </div>""", unsafe_allow_html=True)
+            else:
+                st.markdown(f"""<div class="quiz-fail">
+                <strong>No.</strong> La respuesta es la vida media: t½ = ln(2)/k = {half_life:.2f} min.
+                No confundir con τ = {tau:.2f} min, que es cuando se pierde el 63.2%.
+                </div>""", unsafe_allow_html=True)
+
+
+# ─── 7. ANALOGÍAS DEL MUNDO REAL ───
+if modo_aprendizaje:
+    st.markdown("---")
+    st.markdown("## 🌍 ¿Dónde más aparece esta ecuación?")
+
+    col_a1, col_a2 = st.columns(2)
+    with col_a1:
+        with st.expander("☕ Enfriamiento de café"):
+            st.markdown("""
+            Una taza de café a 85°C en un cuarto a 22°C sigue **exactamente** esta ley.
+            Con k ≈ 0.03 min⁻¹ (taza cerámica sin tapa), la vida media es ~23 min.
+            Por eso a los 20 min ya está tibio.
+            """)
+        with st.expander("🔋 Baterías de autos eléctricos"):
+            st.markdown("""
+            Tras una carga rápida, la batería alcanza ~52°C.
+            Los ingenieros de Tesla usan esta misma EDO para diseñar los
+            circuitos de refrigeración líquida y garantizar que la batería
+            baje de 35°C antes del siguiente ciclo de carga.
+            """)
+    with col_a2:
+        with st.expander("🏥 Hora de muerte (medicina forense)"):
+            st.markdown("""
+            Los forenses usan la Ley de Enfriamiento de Newton *al revés*:
+            miden la temperatura del cuerpo y la del ambiente para estimar
+            cuánto tiempo lleva muerto. Es literalmente esta ecuación
+            despejando t.
+            """)
+        with st.expander("🏗️ Concreto y construcción"):
+            st.markdown("""
+            El concreto recién vertido genera calor por reacción exotérmica.
+            Los ingenieros civiles modelan la disipación de ese calor con
+            esta EDO para evitar fisuras por gradientes térmicos.
+            """)
+
+
+# ─── 8. TABLA DE VALORES ───
 st.markdown("---")
 st.markdown("## 📋 Tabla de valores")
 
@@ -473,7 +786,7 @@ st.download_button(
 )
 
 
-# ─── 6. ANÁLISIS DE RESULTADOS ───
+# ─── 9. ANÁLISIS DE RESULTADOS ───
 st.markdown("---")
 st.markdown("## 🔍 Análisis de resultados")
 
@@ -508,7 +821,7 @@ lo cual es crítico para evitar la degradación térmica y el *thermal throttlin
 """, unsafe_allow_html=True)
 
 
-# ─── 7. ECUACIÓN RESUMEN FINAL ───
+# ─── 10. ECUACIÓN RESUMEN FINAL ───
 st.markdown("---")
 st.markdown("## 📌 Solución particular del problema")
 
@@ -519,7 +832,7 @@ Con dominio $t \\geq 0$ (minutos) y $T \\in ({Ta:.0f}, {T0:.0f}]$ (°C).
 """)
 
 
-# ─── 8. FOOTER ───
+# ─── 11. FOOTER ───
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; color: #adb5bd; font-size: 12px; padding: 16px 0;">
