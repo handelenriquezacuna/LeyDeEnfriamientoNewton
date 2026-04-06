@@ -1,20 +1,35 @@
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Simulador interactivo de la Ley de Enfriamiento de Newton. Resuelve la EDO dT/dt = -k(T-Ta) paso a paso con gráficos y quiz. Universidad Fidélitas MA-106.">
     <title>Ley de Enfriamiento de Newton — Simulador</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌡️</text></svg>">
     <link
       rel="stylesheet"
       href="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.75.0/build/stlite.css"
     />
+    <style>
+html { scroll-behavior: smooth; }
+@media (max-width: 768px) {
+  .stMarkdown h1 { font-size: 1.8rem !important; word-break: keep-all; }
+}
+button[data-testid="stNumberInput-StepUp"],
+button[data-testid="stNumberInput-StepDown"] {
+  min-width: 44px !important;
+  min-height: 44px !important;
+}
+.element-container { animation: fadeIn 0.3s ease-in; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
 </head>
 <body>
     <div id="root"></div>
     <script src="https://cdn.jsdelivr.net/npm/@stlite/mountable@0.75.0/build/stlite.js"></script>
     <script>
         stlite.mount({
-            requirements: ["numpy", "pandas", "matplotlib"],
+            requirements: ["numpy", "pandas", "matplotlib", "plotly"],
             entrypoint: "app.py",
             files: {
                 "models.py": { url: "models.py" },

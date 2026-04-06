@@ -6,12 +6,11 @@ Universidad Fidélitas | MA-106 Ecuaciones Diferenciales
 
 import streamlit as st
 import numpy as np
-import matplotlib.pyplot as plt
 import pandas as pd
 
 from models import CoolingParameters
 from solver import NewtonCoolingSolver
-from scenarios import ESCENARIOS
+from scenarios import ESCENARIOS, PROBLEMAS_PRACTICA
 from charts import CoolingVisualizer
 
 # ─── Page config ───
@@ -251,6 +250,8 @@ def _cargar_escenario():
         st.session_state.input_Tm = esc.Tm
         st.session_state.input_t2 = esc.t2
         st.session_state.input_Tgoal = esc.Tgoal
+        # AGENTE-2: feedback visual al cambiar escenario
+        st.session_state._toast_msg = f"✅ Escenario '{nombre}' cargado"
 
 
 def _restablecer():
@@ -348,6 +349,11 @@ with st.sidebar:
         key="input_Tgoal",
     )
 
+
+# AGENTE-2: mostrar toast si hay mensaje pendiente
+if "_toast_msg" in st.session_state:
+    st.toast(st.session_state._toast_msg)
+    del st.session_state._toast_msg
 
 # ─── Construir parámetros y validar ───
 params = CoolingParameters(T0=T0, Ta=Ta, t1=t1, Tm=Tm, t2=t2, Tgoal=Tgoal)
@@ -684,16 +690,14 @@ st.markdown("---")
 st.markdown("## 📈 Curva de enfriamiento")
 
 fig1 = viz.plot_cooling_curve(t_max)
-st.pyplot(fig1)
-plt.close(fig1)
+st.plotly_chart(fig1, use_container_width=True)
 
 
 st.markdown("### Efecto de la constante k en la curva de enfriamiento")
 st.markdown("*Comparación de diferentes escenarios de refrigeración con los mismos T₀ y Tₐ:*")
 
 fig2 = viz.plot_k_comparison(t_max)
-st.pyplot(fig2)
-plt.close(fig2)
+st.plotly_chart(fig2, use_container_width=True)
 
 
 st.markdown("### Representación semilogarítmica (linealización)")
@@ -717,8 +721,7 @@ else:
     st.markdown("*Al graficar ln(T − Tₐ) vs t, la curva exponencial se convierte en una recta con pendiente −k:*")
 
 fig3 = viz.plot_semilog(t_max)
-st.pyplot(fig3)
-plt.close(fig3)
+st.plotly_chart(fig3, use_container_width=True)
 
 
 # ─── 5. PROGRESO TÉRMICO VISUAL ───
@@ -859,6 +862,26 @@ if modo_aprendizaje:
                 No confundir con τ = {tau:.2f} min, que es cuando se pierde el 63.2%.
                 </div>""", unsafe_allow_html=True)
 
+    # AGENTE-2: Puntuación acumulativa del quiz
+    respuestas_quiz = []
+    for i, (key, correcta) in enumerate([
+        ("quiz_q1", "Se reduce a la mitad (tarda la mitad)"),
+        ("quiz_q2", "No, Tₐ es el límite inferior (asíntota)"),
+        ("quiz_q3", f"Exactamente {half_life:.2f} min (la vida media)"),
+    ], 1):
+        resp = st.session_state.get(key)
+        if resp is not None:
+            respuestas_quiz.append(resp == correcta)
+
+    if len(respuestas_quiz) == 3:
+        correctas = sum(respuestas_quiz)
+        if correctas == 3:
+            st.success("🏆 ¡Perfecto! 3/3 — Dominás la Ley de Enfriamiento de Newton.")
+        elif correctas == 2:
+            st.info(f"👏 ¡Muy bien! {correctas}/3 — Revisá el concepto que fallaste.")
+        else:
+            st.warning(f"💪 {correctas}/3 — ¡Seguí practicando! Releé el desarrollo paso a paso.")
+
 
 # ─── 7. ANALOGÍAS DEL MUNDO REAL ───
 if modo_aprendizaje:
@@ -965,41 +988,25 @@ if modo_aprendizaje:
     st.markdown("Intentá resolver estos problemas manualmente y después cargá los valores "
                 "en el sidebar para verificar tus respuestas.")
 
-    with st.expander("☕ Problema 1 — Café en la oficina"):
-        st.markdown("""<div class="practice-box">
-Una taza de café se sirve a **90°C** en una oficina a **22°C**.
-Después de **4 minutos**, la temperatura baja a **72°C**.
+    # AGENTE-2: Problemas de práctica con botón de autocarga
+    for i, prob in enumerate(PROBLEMAS_PRACTICA):
+        with st.expander(f"Problema {i+1} — {prob['nombre']}"):
+            st.markdown(f"""<div class="practice-box">
+{prob['desc']}
 
-**(a)** Encontrá la constante k.
-**(b)** ¿Cuál será la temperatura a los 10 minutos?
-**(c)** ¿Cuánto tarda en llegar a 30°C?
-
-👉 Cargá estos valores en el sidebar: T₀=90, Tₐ=22, t₁=4, T(t₁)=72, t₂=10, T*=30
+{prob['preguntas']}
 </div>""", unsafe_allow_html=True)
-
-    with st.expander("🏭 Problema 2 — Motor industrial"):
-        st.markdown("""<div class="practice-box">
-Un motor industrial se apaga a **180°C** en una planta a **28°C**.
-Tras **10 minutos**, la carcasa marca **130°C**.
-
-**(a)** Encontrá la constante k.
-**(b)** ¿Cuál será la temperatura a los 30 minutos?
-**(c)** ¿Cuánto tarda en ser seguro tocarlo (40°C)?
-
-👉 Cargá estos valores en el sidebar: T₀=180, Tₐ=28, t₁=10, T(t₁)=130, t₂=30, T*=40
-</div>""", unsafe_allow_html=True)
-
-    with st.expander("🧪 Problema 3 — Muestra de laboratorio"):
-        st.markdown("""<div class="practice-box">
-Una muestra biológica a **37°C** se coloca en un refrigerador a **4°C**.
-Después de **6 minutos**, la temperatura es **30°C**.
-
-**(a)** Encontrá la constante k.
-**(b)** ¿Cuál será la temperatura a los 15 minutos?
-**(c)** ¿Cuánto tarda en llegar a 8°C para almacenamiento seguro?
-
-👉 Cargá estos valores en el sidebar: T₀=37, Tₐ=4, t₁=6, T(t₁)=30, t₂=15, T*=8
-</div>""", unsafe_allow_html=True)
+            if st.button(f"📥 Cargar estos valores en el sidebar", key=f"load_practice_{i}"):
+                p = prob["params"]
+                st.session_state.input_T0 = p.T0
+                st.session_state.input_Ta = p.Ta
+                st.session_state.input_t1 = p.t1
+                st.session_state.input_Tm = p.Tm
+                st.session_state.input_t2 = p.t2
+                st.session_state.input_Tgoal = p.Tgoal
+                st.session_state.preset_select = "— Personalizado —"
+                st.session_state._toast_msg = f"📥 Valores de '{prob['nombre']}' cargados"
+                st.rerun()
 
 
 # ─── 12. FOOTER ───

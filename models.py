@@ -64,6 +64,22 @@ class CoolingParameters:
             return False, "T* debe ser menor que T₀"
         return True, ""
 
+    # AGENTE-4: métodos de formato y validación en español
+
+    def format_value(self, value: float, decimals: int = 2) -> str:
+        """Formatea un valor numérico con punto decimal (no coma)."""
+        return f"{value:.{decimals}f}"
+
+    def validation_messages(self) -> dict[str, str]:
+        """Retorna mensajes de validación para cada campo en español."""
+        return {
+            "T0": f"T₀ debe ser mayor que Tₐ ({self.Ta}°C)",
+            "Ta": f"Tₐ debe ser menor que T₀ ({self.T0}°C)",
+            "t1": "t₁ debe ser mayor que 0",
+            "Tm": f"T(t₁) debe estar entre Tₐ ({self.Ta}°C) y T₀ ({self.T0}°C)",
+            "Tgoal": f"T* debe estar entre Tₐ ({self.Ta}°C) y T₀ ({self.T0}°C)",
+        }
+
 
 @dataclass
 class CoolingResults:
