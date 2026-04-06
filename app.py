@@ -988,7 +988,19 @@ if modo_aprendizaje:
     st.markdown("Intentá resolver estos problemas manualmente y después cargá los valores "
                 "en el sidebar para verificar tus respuestas.")
 
-    # AGENTE-2: Problemas de práctica con botón de autocarga
+    # AGENTE-2: Problemas de práctica con botón de autocarga (via callback)
+    def _cargar_practica(idx: int):
+        """Callback: carga valores de un problema de práctica en session_state."""
+        p = PROBLEMAS_PRACTICA[idx]["params"]
+        st.session_state.input_T0 = p.T0
+        st.session_state.input_Ta = p.Ta
+        st.session_state.input_t1 = p.t1
+        st.session_state.input_Tm = p.Tm
+        st.session_state.input_t2 = p.t2
+        st.session_state.input_Tgoal = p.Tgoal
+        st.session_state.preset_select = "— Personalizado —"
+        st.session_state._toast_msg = f"📥 Valores de '{PROBLEMAS_PRACTICA[idx]['nombre']}' cargados"
+
     for i, prob in enumerate(PROBLEMAS_PRACTICA):
         with st.expander(f"Problema {i+1} — {prob['nombre']}"):
             st.markdown(f"""<div class="practice-box">
@@ -996,17 +1008,9 @@ if modo_aprendizaje:
 
 {prob['preguntas']}
 </div>""", unsafe_allow_html=True)
-            if st.button(f"📥 Cargar estos valores en el sidebar", key=f"load_practice_{i}"):
-                p = prob["params"]
-                st.session_state.input_T0 = p.T0
-                st.session_state.input_Ta = p.Ta
-                st.session_state.input_t1 = p.t1
-                st.session_state.input_Tm = p.Tm
-                st.session_state.input_t2 = p.t2
-                st.session_state.input_Tgoal = p.Tgoal
-                st.session_state.preset_select = "— Personalizado —"
-                st.session_state._toast_msg = f"📥 Valores de '{prob['nombre']}' cargados"
-                st.rerun()
+            st.button(f"📥 Cargar estos valores en el sidebar",
+                      key=f"load_practice_{i}",
+                      on_click=_cargar_practica, args=(i,))
 
 
 # ─── 12. FOOTER ───
