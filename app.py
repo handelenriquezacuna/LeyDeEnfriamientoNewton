@@ -59,9 +59,39 @@ st.markdown("""
     }
 
     .step-desc {
-        font-size: 14px;
-        color: #6c757d;
+        font-size: 15px;
+        color: #374151;
+        font-weight: 500;
         margin-bottom: 8px;
+    }
+
+    .step-name-badge {
+        display: inline-block;
+        background: #e0e7ff;
+        color: #3730a3;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 3px 10px;
+        border-radius: 20px;
+        margin-bottom: 8px;
+    }
+
+    .intro-box {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        border: 1px solid #7dd3fc;
+        border-radius: 12px;
+        padding: 20px 24px;
+        line-height: 1.8;
+        color: #0c4a6e !important;
+    }
+
+    .practice-box {
+        background: linear-gradient(135deg, #faf5ff 0%, #f3e8ff 100%);
+        border: 1px solid #d8b4fe;
+        border-radius: 12px;
+        padding: 18px 22px;
+        line-height: 1.7;
+        color: #3b0764 !important;
     }
 
     .problem-box {
@@ -330,6 +360,11 @@ es_valido, msg_error = params.validate()
 
 st.markdown("# 🌡️ Ley de Enfriamiento de Newton")
 st.markdown("**Aplicación de EDO** · Disipación térmica en GPU · Universidad Fidélitas · MA-106")
+
+if not modo_aprendizaje:
+    st.info("💡 Activá el **Modo Aprendizaje** en el sidebar para ver "
+            "explicaciones intuitivas, quiz interactivo y analogías del mundo real.")
+
 st.markdown("---")
 
 if not es_valido:
@@ -346,6 +381,32 @@ T2 = res.T2
 t_goal = res.t_goal
 half_life = res.half_life
 tau = res.tau
+
+
+# ─── 0. SECCIÓN INTRODUCTORIA ───
+if modo_aprendizaje:
+    with st.expander("📖 ¿Qué es la Ley de Enfriamiento de Newton?", expanded=False):
+        st.markdown("""<div class="intro-box">
+
+**Concepto físico:** Cuando un objeto caliente se coloca en un ambiente más frío,
+pierde calor a una velocidad que depende de la diferencia de temperatura entre
+el objeto y su entorno. Cuanto mayor es la diferencia, más rápido se enfría.
+
+**¿Cuándo aplica?** Este modelo es válido cuando la diferencia de temperatura
+no es extrema (menos de ~100°C respecto al ambiente) y el objeto es relativamente
+pequeño comparado con su entorno. Aplica para GPUs, CPUs, tazas de café, baterías,
+e incluso cuerpos humanos en medicina forense.
+
+**Conexión con EDO:** La ley se expresa como una ecuación diferencial ordinaria
+de primer orden separable: dT/dt = −k(T − Tₐ). Resolverla nos da una función
+T(t) que predice la temperatura en cualquier instante futuro.
+
+**Cómo usar esta app:** Ajustá los parámetros en el sidebar izquierdo,
+o elegí un escenario predefinido. La app resuelve la EDO paso a paso y muestra
+gráficos interactivos. Con el Modo Aprendizaje activado, verás explicaciones
+intuitivas, un quiz y analogías del mundo real.
+
+</div>""", unsafe_allow_html=True)
 
 
 # ─── 1. PLANTEAMIENTO DEL PROBLEMA ───
@@ -390,12 +451,44 @@ with col5:
 st.markdown("---")
 st.markdown("## 📐 Desarrollo matemático paso a paso")
 
+# Progressive reveal (BACKLOG-7)
+if modo_aprendizaje:
+    if "pasos_revelados" not in st.session_state:
+        st.session_state.pasos_revelados = 8  # Show all by default on first load
+    total_pasos = 8
+    pasos_revelados = st.session_state.pasos_revelados
+
+    col_prog1, col_prog2, col_prog3 = st.columns([1, 1, 2])
+    with col_prog1:
+        if st.button("→ Ver siguiente paso", disabled=pasos_revelados >= total_pasos,
+                      use_container_width=True):
+            st.session_state.pasos_revelados = min(pasos_revelados + 1, total_pasos)
+            st.rerun()
+    with col_prog2:
+        if st.button("Ver todos los pasos", disabled=pasos_revelados >= total_pasos,
+                      use_container_width=True):
+            st.session_state.pasos_revelados = total_pasos
+            st.rerun()
+    with col_prog3:
+        if pasos_revelados >= total_pasos:
+            st.success("✅ ¡Completaste todos los pasos!")
+        else:
+            st.progress(pasos_revelados / total_pasos,
+                        text=f"Paso {pasos_revelados} de {total_pasos}")
+
+    if pasos_revelados < total_pasos:
+        if st.button("↺ Reiniciar pasos desde el 1", use_container_width=False):
+            st.session_state.pasos_revelados = 1
+            st.rerun()
+else:
+    pasos_revelados = 8  # Show all in non-learning mode
+
 diff0 = params.initial_difference
 diffm = params.measured_difference
 ratio = params.measurement_ratio
 
 
-def math_step(num: str, title: str, desc: str, latex: str):
+def math_step(num: str, title: str, desc: str, latex: str, formula_name: str = ""):
     """Renderiza un paso matemático con estilo."""
     st.markdown(f"""
     <div class="math-step">
@@ -403,168 +496,184 @@ def math_step(num: str, title: str, desc: str, latex: str):
         <div class="step-desc">{title}</div>
     </div>
     """, unsafe_allow_html=True)
+    if formula_name:
+        st.markdown(f'<span class="step-name-badge">{formula_name}</span>',
+                    unsafe_allow_html=True)
     if desc:
         st.markdown(f"*{desc}*")
     st.latex(latex)
 
 
 # Paso 1
-math_step(
-    "Paso 1 — Ecuación diferencial",
-    "Escribir la EDO que modela el fenómeno según la Ley de Enfriamiento de Newton",
-    "La tasa de cambio de temperatura es proporcional a la diferencia entre el objeto y el ambiente:",
-    r"\frac{dT}{dt} = -k(T - T_a)"
-)
+if pasos_revelados >= 1:
+    math_step(
+        "Paso 1 — Ecuación diferencial",
+        "Escribir la EDO que modela el fenómeno según la Ley de Enfriamiento de Newton",
+        "La tasa de cambio de temperatura es proporcional a la diferencia entre el objeto y el ambiente:",
+        r"\frac{dT}{dt} = -k(T - T_a)",
+        formula_name="EDO",
+    )
 
-if modo_aprendizaje:
-    st.markdown("""<div class="intuition-box">
-    <strong>Intuición:</strong> Imagina que sostenés una taza de café caliente.
-    Al principio se enfría rápido porque la diferencia con el ambiente es grande.
-    Conforme se acerca a la temperatura del cuarto, se enfría cada vez más lento.
-    Eso es exactamente lo que dice esta ecuación: <em>la velocidad de cambio depende
-    de qué tan lejos estés del equilibrio</em>.
-    </div>""", unsafe_allow_html=True)
+    if modo_aprendizaje:
+        st.markdown("""<div class="intuition-box">
+        <strong>Intuición:</strong> Imagina que sostenés una taza de café caliente.
+        Al principio se enfría rápido porque la diferencia con el ambiente es grande.
+        Conforme se acerca a la temperatura del cuarto, se enfría cada vez más lento.
+        Eso es exactamente lo que dice esta ecuación: <em>la velocidad de cambio depende
+        de qué tan lejos estés del equilibrio</em>.
+        </div>""", unsafe_allow_html=True)
 
 # Paso 2
-math_step(
-    "Paso 2 — Separación de variables",
-    "Llevar T a un lado y t al otro para poder integrar",
-    "Se reorganiza la ecuación separando las variables T y t:",
-    r"\frac{dT}{T - T_a} = -k \, dt"
-)
+if pasos_revelados >= 2:
+    math_step(
+        "Paso 2 — Separación de variables",
+        "Llevar T a un lado y t al otro para poder integrar",
+        "Se reorganiza la ecuación separando las variables T y t:",
+        r"\frac{dT}{T - T_a} = -k \, dt",
+        formula_name="Separación de Variables",
+    )
 
-if modo_aprendizaje:
-    st.markdown("""<div class="intuition-box">
-    <strong>¿Por qué separar variables?</strong> Es como organizar una ecuación
-    para que cada lado hable de una sola cosa: el lado izquierdo solo tiene temperatura,
-    el derecho solo tiene tiempo. Así podemos integrar cada lado por separado.
-    </div>""", unsafe_allow_html=True)
+    if modo_aprendizaje:
+        st.markdown("""<div class="intuition-box">
+        <strong>¿Por qué separar variables?</strong> Es como organizar una ecuación
+        para que cada lado hable de una sola cosa: el lado izquierdo solo tiene temperatura,
+        el derecho solo tiene tiempo. Así podemos integrar cada lado por separado.
+        </div>""", unsafe_allow_html=True)
 
 # Paso 3
-math_step(
-    "Paso 3 — Integración",
-    "Integrar ambos miembros de la ecuación",
-    "El lado izquierdo es una integral de la forma ∫du/u = ln|u|:",
-    r"\int \frac{dT}{T - T_a} = \int -k \, dt \quad \Longrightarrow \quad \ln|T - T_a| = -kt + C"
-)
+if pasos_revelados >= 3:
+    math_step(
+        "Paso 3 — Integración",
+        "Integrar ambos miembros de la ecuación",
+        "El lado izquierdo es una integral de la forma ∫du/u = ln|u|:",
+        r"\int \frac{dT}{T - T_a} = \int -k \, dt \quad \Longrightarrow \quad \ln|T - T_a| = -kt + C",
+        formula_name="Integración Indefinida",
+    )
 
 # Paso 4
-math_step(
-    "Paso 4 — Solución general",
-    "Despejar T(t) aplicando la exponencial",
-    "Se aplica e^(·) a ambos lados y se renombra la constante:",
-    r"T(t) = T_a + (T_0 - T_a) \cdot e^{-kt}"
-)
+if pasos_revelados >= 4:
+    math_step(
+        "Paso 4 — Solución general",
+        "Despejar T(t) aplicando la exponencial",
+        "Se aplica e^(·) a ambos lados y se renombra la constante:",
+        r"T(t) = T_a + (T_0 - T_a) \cdot e^{-kt}",
+        formula_name="Solución General",
+    )
 
-if modo_aprendizaje:
-    st.markdown("""<div class="intuition-box">
-    <strong>Esta es la ecuación clave.</strong> Dice que la temperatura
-    arranca en T₀ y <em>decae exponencialmente</em> hacia Tₐ. El término
-    e<sup>-kt</sup> es el que controla la velocidad: cuanto mayor sea k,
-    más rápido cae el exponencial y más rápido se enfría el objeto.
-    </div>""", unsafe_allow_html=True)
+    if modo_aprendizaje:
+        st.markdown("""<div class="intuition-box">
+        <strong>Esta es la ecuación clave.</strong> Dice que la temperatura
+        arranca en T₀ y <em>decae exponencialmente</em> hacia Tₐ. El término
+        e<sup>-kt</sup> es el que controla la velocidad: cuanto mayor sea k,
+        más rápido cae el exponencial y más rápido se enfría el objeto.
+        </div>""", unsafe_allow_html=True)
 
 # Paso 5
-math_step(
-    "Paso 5 — Condición inicial",
-    f"Verificar con T(0) = {T0:.0f} °C",
-    "Al sustituir t = 0, e⁰ = 1, se confirma la condición inicial:",
-    rf"T(0) = {Ta:.0f} + ({T0:.0f} - {Ta:.0f}) \cdot e^{{0}} = {Ta:.0f} + {diff0:.0f} \cdot 1 = {T0:.0f} \; °C \;\; \checkmark"
-)
+if pasos_revelados >= 5:
+    math_step(
+        "Paso 5 — Condición inicial",
+        f"Verificar con T(0) = {T0:.0f} °C",
+        "Al sustituir t = 0, e⁰ = 1, se confirma la condición inicial:",
+        rf"T(0) = {Ta:.0f} + ({T0:.0f} - {Ta:.0f}) \cdot e^{{0}} = {Ta:.0f} + {diff0:.0f} \cdot 1 = {T0:.0f} \; °C \;\; \checkmark",
+        formula_name="Condición Inicial",
+    )
 
 # Paso 6 (a) — Encontrar k
-st.markdown("""
-<div class="math-step">
-    <div class="step-label">Paso 6 (a) — Encontrar k</div>
-    <div class="step-desc">Usar el dato conocido T(t₁) para determinar la constante de enfriamiento</div>
-</div>
-""", unsafe_allow_html=True)
+if pasos_revelados >= 6:
+    st.markdown("""
+    <div class="math-step">
+        <div class="step-label">Paso 6 (a) — Encontrar k</div>
+        <div class="step-desc">Usar el dato conocido T(t₁) para determinar la constante de enfriamiento</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-st.markdown(f"*Se sustituye T({t1:.1f}) = {Tm:.0f} °C en la solución:*")
+    st.markdown(f"*Se sustituye T({t1:.1f}) = {Tm:.0f} °C en la solución:*")
 
-st.latex(rf"{Tm:.0f} = {Ta:.0f} + {diff0:.0f} \cdot e^{{-k \cdot {t1:.1f}}}")
+    st.latex(rf"{Tm:.0f} = {Ta:.0f} + {diff0:.0f} \cdot e^{{-k \cdot {t1:.1f}}}")
 
-st.latex(rf"{Tm:.0f} - {Ta:.0f} = {diff0:.0f} \cdot e^{{-{t1:.1f}k}}")
+    st.latex(rf"{Tm:.0f} - {Ta:.0f} = {diff0:.0f} \cdot e^{{-{t1:.1f}k}}")
 
-st.latex(rf"{diffm:.0f} = {diff0:.0f} \cdot e^{{-{t1:.1f}k}}")
+    st.latex(rf"{diffm:.0f} = {diff0:.0f} \cdot e^{{-{t1:.1f}k}}")
 
-st.latex(rf"e^{{-{t1:.1f}k}} = \frac{{{diffm:.0f}}}{{{diff0:.0f}}} = {ratio:.4f}")
+    st.latex(rf"e^{{-{t1:.1f}k}} = \frac{{{diffm:.0f}}}{{{diff0:.0f}}} = {ratio:.4f}")
 
-st.markdown("*Se aplica logaritmo natural a ambos lados:*")
+    st.markdown("*Se aplica logaritmo natural a ambos lados:*")
 
-st.latex(rf"-{t1:.1f}k = \ln({ratio:.4f}) = {np.log(ratio):.4f}")
+    st.latex(rf"-{t1:.1f}k = \ln({ratio:.4f}) = {np.log(ratio):.4f}")
 
-st.latex(rf"k = \frac{{-({np.log(ratio):.4f})}}{{{t1:.1f}}}")
+    st.latex(rf"k = \frac{{-({np.log(ratio):.4f})}}{{{t1:.1f}}}")
 
-st.markdown(f"""
-<div class="result-highlight">
-    k = {k:.4f} min⁻¹
-</div>
-""", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class="result-highlight">
+        k = {k:.4f} min⁻¹
+    </div>
+    """, unsafe_allow_html=True)
 
-if modo_aprendizaje:
-    clasif_tmp, desc_tmp = NewtonCoolingSolver.classify_k(k)
-    st.markdown(f"""<div class="intuition-box">
-    <strong>¿Qué significa k = {k:.4f}?</strong> Es la "velocidad de enfriamiento".
-    Un k de {k:.4f} se clasifica como <strong>{clasif_tmp}</strong>, típico de {desc_tmp}.
-    Si k fuera el doble ({k*2:.4f}), el objeto se enfriaría al doble de velocidad.
-    Probá cambiando los valores en el sidebar para ver cómo cambia k.
-    </div>""", unsafe_allow_html=True)
+    if modo_aprendizaje:
+        clasif_tmp, desc_tmp = NewtonCoolingSolver.classify_k(k)
+        st.markdown(f"""<div class="intuition-box">
+        <strong>¿Qué significa k = {k:.4f}?</strong> Es la "velocidad de enfriamiento".
+        Un k de {k:.4f} se clasifica como <strong>{clasif_tmp}</strong>, típico de {desc_tmp}.
+        Si k fuera el doble ({k*2:.4f}), el objeto se enfriaría al doble de velocidad.
+        Probá cambiando los valores en el sidebar para ver cómo cambia k.
+        </div>""", unsafe_allow_html=True)
 
-st.markdown("")
+    st.markdown("")
 
 # Paso 7 (b) — T(t2)
-exp_val = np.exp(-k * t2)
+if pasos_revelados >= 7:
+    exp_val = np.exp(-k * t2)
 
-st.markdown(f"""
-<div class="math-step">
-    <div class="step-label">Paso 7 (b) — Temperatura en t = {t2:.0f} min</div>
-    <div class="step-desc">Sustituir el valor de k y t₂ en la solución</div>
-</div>
-""", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class="math-step">
+        <div class="step-label">Paso 7 (b) — Temperatura en t = {t2:.0f} min</div>
+        <div class="step-desc">Sustituir el valor de k y t₂ en la solución</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-st.latex(rf"T({t2:.0f}) = {Ta:.0f} + {diff0:.0f} \cdot e^{{-({k:.4f})({t2:.0f})}}")
+    st.latex(rf"T({t2:.0f}) = {Ta:.0f} + {diff0:.0f} \cdot e^{{-({k:.4f})({t2:.0f})}}")
 
-st.latex(rf"T({t2:.0f}) = {Ta:.0f} + {diff0:.0f} \cdot e^{{{-k * t2:.4f}}}")
+    st.latex(rf"T({t2:.0f}) = {Ta:.0f} + {diff0:.0f} \cdot e^{{{-k * t2:.4f}}}")
 
-st.latex(rf"T({t2:.0f}) = {Ta:.0f} + {diff0:.0f} \cdot {exp_val:.4f}")
+    st.latex(rf"T({t2:.0f}) = {Ta:.0f} + {diff0:.0f} \cdot {np.exp(-k * t2):.4f}")
 
-st.latex(rf"T({t2:.0f}) = {Ta:.0f} + {diff0 * exp_val:.2f}")
+    st.latex(rf"T({t2:.0f}) = {Ta:.0f} + {diff0 * np.exp(-k * t2):.2f}")
 
-st.markdown(f"""
-<div class="result-highlight">
-    T({t2:.0f}) = {T2:.2f} °C
-</div>
-""", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class="result-highlight">
+        T({t2:.0f}) = {T2:.2f} °C
+    </div>
+    """, unsafe_allow_html=True)
 
-st.markdown("")
+    st.markdown("")
 
 # Paso 8 (c) — Tiempo para Tgoal
-diffg = params.goal_difference
-ratio_g = diffg / diff0
+if pasos_revelados >= 8:
+    diffg = params.goal_difference
+    ratio_g = diffg / diff0
 
-st.markdown(f"""
-<div class="math-step">
-    <div class="step-label">Paso 8 (c) — Tiempo para alcanzar {Tgoal:.0f} °C</div>
-    <div class="step-desc">Despejar t de la ecuación</div>
-</div>
-""", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class="math-step">
+        <div class="step-label">Paso 8 (c) — Tiempo para alcanzar {Tgoal:.0f} °C</div>
+        <div class="step-desc">Despejar t de la ecuación</div>
+    </div>
+    """, unsafe_allow_html=True)
 
-st.latex(rf"{Tgoal:.0f} = {Ta:.0f} + {diff0:.0f} \cdot e^{{-{k:.4f} \cdot t}}")
+    st.latex(rf"{Tgoal:.0f} = {Ta:.0f} + {diff0:.0f} \cdot e^{{-{k:.4f} \cdot t}}")
 
-st.latex(rf"{diffg:.0f} = {diff0:.0f} \cdot e^{{-{k:.4f} \cdot t}}")
+    st.latex(rf"{diffg:.0f} = {diff0:.0f} \cdot e^{{-{k:.4f} \cdot t}}")
 
-st.latex(rf"e^{{-{k:.4f} \cdot t}} = \frac{{{diffg:.0f}}}{{{diff0:.0f}}} = {ratio_g:.4f}")
+    st.latex(rf"e^{{-{k:.4f} \cdot t}} = \frac{{{diffg:.0f}}}{{{diff0:.0f}}} = {ratio_g:.4f}")
 
-st.latex(rf"-{k:.4f} \cdot t = \ln({ratio_g:.4f}) = {np.log(ratio_g):.4f}")
+    st.latex(rf"-{k:.4f} \cdot t = \ln({ratio_g:.4f}) = {np.log(ratio_g):.4f}")
 
-st.latex(rf"t = \frac{{{np.log(ratio_g):.4f}}}{{-{k:.4f}}}")
+    st.latex(rf"t = \frac{{{np.log(ratio_g):.4f}}}{{-{k:.4f}}}")
 
-st.markdown(f"""
-<div class="result-highlight">
-    t = {t_goal:.2f} minutos
-</div>
-""", unsafe_allow_html=True)
+    st.markdown(f"""
+    <div class="result-highlight">
+        t = {t_goal:.2f} minutos
+    </div>
+    """, unsafe_allow_html=True)
 
 
 # ─── 4. GRÁFICOS ───
@@ -588,7 +697,24 @@ plt.close(fig2)
 
 
 st.markdown("### Representación semilogarítmica (linealización)")
-st.markdown("*Al graficar ln(T − Tₐ) vs t, la curva exponencial se convierte en una recta con pendiente −k:*")
+
+if modo_aprendizaje:
+    st.markdown(f"""
+**¿Por qué graficar ln(T − Tₐ)?** Si el modelo de Newton es correcto,
+al tomar logaritmo natural de ambos lados obtenemos ln(T − Tₐ) = −kt + ln(T₀ − Tₐ),
+que es la ecuación de una **recta** con pendiente **−k = −{k:.4f}**.
+
+**Verificación del modelo:** Si los datos experimentales caen sobre una línea recta
+en este gráfico, el modelo newtoniano es una buena aproximación. Si se desvían,
+podría haber factores como radiación, convección forzada o cambios de fase
+que el modelo simple no captura.
+
+**Medición de k:** En un laboratorio, podés medir varias temperaturas a distintos tiempos,
+graficarlas en escala semilog, y la pendiente de la recta resultante te da −k directamente.
+Es más preciso que usar solo dos puntos.
+""")
+else:
+    st.markdown("*Al graficar ln(T − Tₐ) vs t, la curva exponencial se convierte en una recta con pendiente −k:*")
 
 fig3 = viz.plot_semilog(t_max)
 st.pyplot(fig3)
@@ -832,7 +958,51 @@ Con dominio $t \\geq 0$ (minutos) y $T \\in ({Ta:.0f}, {T0:.0f}]$ (°C).
 """)
 
 
-# ─── 11. FOOTER ───
+# ─── 11. PROBLEMAS DE PRÁCTICA ───
+if modo_aprendizaje:
+    st.markdown("---")
+    st.markdown("## 🏋️ Practicá por tu cuenta")
+    st.markdown("Intentá resolver estos problemas manualmente y después cargá los valores "
+                "en el sidebar para verificar tus respuestas.")
+
+    with st.expander("☕ Problema 1 — Café en la oficina"):
+        st.markdown("""<div class="practice-box">
+Una taza de café se sirve a **90°C** en una oficina a **22°C**.
+Después de **4 minutos**, la temperatura baja a **72°C**.
+
+**(a)** Encontrá la constante k.
+**(b)** ¿Cuál será la temperatura a los 10 minutos?
+**(c)** ¿Cuánto tarda en llegar a 30°C?
+
+👉 Cargá estos valores en el sidebar: T₀=90, Tₐ=22, t₁=4, T(t₁)=72, t₂=10, T*=30
+</div>""", unsafe_allow_html=True)
+
+    with st.expander("🏭 Problema 2 — Motor industrial"):
+        st.markdown("""<div class="practice-box">
+Un motor industrial se apaga a **180°C** en una planta a **28°C**.
+Tras **10 minutos**, la carcasa marca **130°C**.
+
+**(a)** Encontrá la constante k.
+**(b)** ¿Cuál será la temperatura a los 30 minutos?
+**(c)** ¿Cuánto tarda en ser seguro tocarlo (40°C)?
+
+👉 Cargá estos valores en el sidebar: T₀=180, Tₐ=28, t₁=10, T(t₁)=130, t₂=30, T*=40
+</div>""", unsafe_allow_html=True)
+
+    with st.expander("🧪 Problema 3 — Muestra de laboratorio"):
+        st.markdown("""<div class="practice-box">
+Una muestra biológica a **37°C** se coloca en un refrigerador a **4°C**.
+Después de **6 minutos**, la temperatura es **30°C**.
+
+**(a)** Encontrá la constante k.
+**(b)** ¿Cuál será la temperatura a los 15 minutos?
+**(c)** ¿Cuánto tarda en llegar a 8°C para almacenamiento seguro?
+
+👉 Cargá estos valores en el sidebar: T₀=37, Tₐ=4, t₁=6, T(t₁)=30, t₂=15, T*=8
+</div>""", unsafe_allow_html=True)
+
+
+# ─── 12. FOOTER ───
 st.markdown("---")
 st.markdown("""
 <div style="text-align: center; color: #adb5bd; font-size: 12px; padding: 16px 0;">
